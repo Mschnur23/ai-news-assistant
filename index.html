@@ -9,41 +9,43 @@
     <script src="app.js" defer></script>
   </head>
   <body>
+    <a class="skip-link" href="#radar-title">Skip to News Radar</a>
     <main>
       <header>
-        <p class="edition">AI News Assistant · Phase 2</p>
+        <p class="edition">AI News Assistant · Phase 3</p>
         <h1>AI News Briefing</h1>
         <p class="subtitle">Discover stories with RSS. Read one more closely with Firecrawl.</p>
       </header>
       <section aria-labelledby="radar-title">
-        <h2 id="radar-title">News Radar</h2>
+        <h2 id="radar-title" tabindex="-1">News Radar</h2>
         <div class="controls">
           <button id="load-news" type="button">Load Latest News</button>
           <div class="filter">
             <label for="keyword">Filter by keyword or topic</label>
-            <input id="keyword" type="search" placeholder="Search titles and summaries">
+            <input id="keyword" type="search" placeholder="Search titles and summaries" aria-describedby="news-status">
           </div>
         </div>
-        <section id="deep-read" aria-labelledby="deep-title" aria-live="polite" hidden>
+        <section id="deep-read" aria-labelledby="deep-title" tabindex="-1" hidden>
           <h2 id="deep-title">Deep Read · Firecrawl</h2>
+          <p id="deep-status" role="status"></p>
           <div id="deep-result"></div>
         </section>
         <p id="news-status" role="status">Load the latest stories from WIRED, TechCrunch, and VentureBeat.</p>
         <p id="news-warning" role="status"></p>
-        <div id="articles"></div>
+        <div id="articles" aria-busy="false"></div>
       </section>
       <section id="web-explorer" aria-labelledby="explorer-title">
         <h2 id="explorer-title">Web Explorer</h2>
         <form id="explorer-form" class="controls" novalidate>
           <div class="filter">
             <label for="page-url">Explore Any Web Page</label>
-            <input id="page-url" type="url" required maxlength="2048" placeholder="https://example.com" aria-describedby="explorer-status">
+            <input id="page-url" type="url" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" required maxlength="2048" placeholder="https://example.com" aria-describedby="explorer-status">
           </div>
           <button id="scrape-page" type="submit">Scrape Page</button>
         </form>
-        <div id="explorer-output" aria-live="polite" aria-busy="false">
+        <div id="explorer-output">
           <p id="explorer-status" role="status">Enter one public page URL to retrieve an excerpt with Firecrawl.</p>
-          <div id="explorer-result"></div>
+          <div id="explorer-result" aria-busy="false"></div>
         </div>
       </section>
       <noscript>JavaScript is required to load news, use Deep Read, and explore a page.</noscript>

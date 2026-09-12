@@ -5,10 +5,31 @@ const status = document.querySelector('#news-status');
 const warning = document.querySelector('#news-warning');
 const deepPanel = document.querySelector('#deep-read');
 const deepResult = document.querySelector('#deep-result');
+const deepStatus = document.querySelector('#deep-status');
 let articles = [];
 let hasLoaded = false;
 let loadingNews = false;
 let loadingDeep = false;
+let newsFailed = false;
+
+async function requestJSON(path, options = {}) {
+  const response = await fetch(path, { ...options, signal: AbortSignal.timeout(path === '/api/news' ? 18000 : 45000) });
+  if (!response.ok) {
+    const error = new Error('Request failed');
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}
+function scrapeError(error) {
+  if (error.status === 400) return 'Enter a public http:// or https:// page URL. Local addresses and URLs containing credentials are not supported.';
+  if (error.status === 503) return 'Scraping is not configured. Ask the site owner to check the server-side Firecrawl key.';
+  if (error.name === 'TimeoutError' || error.name === 'AbortError') return 'The page took too long to respond. Please try again.';
+  return 'This page could not be retrieved. Please try again or open the original page.';
+}
+function updateDeepButtons() {
+  for (const button of articlesElement.querySelectorAll('button')) button.disabled = loadingDeep;
+}
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -21,6 +42,7 @@ function originalLink(url, label = 'Read Original Article') {
   link.href = url;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
+  link.setAttribute('aria-label', `${label} (opens in a new tab)`);
   return link;
 }
 function renderArticles() {
@@ -34,32 +56,40 @@ function renderArticles() {
     const actions = element('div', '', 'actions');
     const button = element('button', 'Deep Read');
     button.type = 'button';
+    button.setAttribute('aria-label', `Deep Read: ${article.title}`);
     button.disabled = loadingDeep;
     button.addEventListener('click', () => deepRead(article));
     actions.append(originalLink(article.url), button);
     card.append(actions);
     articlesElement.append(card);
   }
+  if (newsFailed && !loadingNews) {
+    status.textContent = articles.length ? `Refresh failed. Showing ${matches.length} of ${articles.length} previously loaded stories.` : 'No news loaded. Select Load Latest News to try again.';
+    return;
+  }
   if (hasLoaded && !loadingNews) status.textContent = matches.length ? `${matches.length} of ${articles.length} stories shown.` : term && articles.length ? 'No matching stories. Try another keyword or clear the filter.' : 'No stories available. Try loading news again.';
 }
 loadButton.addEventListener('click', async () => {
+  if (loadingNews) return;
   loadingNews = true;
+  articlesElement.setAttribute('aria-busy', 'true');
   loadButton.disabled = true;
   loadButton.textContent = 'Loading news…';
   status.textContent = 'Loading the three RSS feeds…';
   warning.textContent = '';
   try {
-    const response = await fetch('/api/news');
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'News could not be loaded. Please try again.');
+    const data = await requestJSON('/api/news');
+    if (!Array.isArray(data.articles) || !Array.isArray(data.warnings)) throw new Error('Invalid response');
+    newsFailed = false;
     articles = data.articles;
     hasLoaded = true;
     warning.textContent = data.warnings.join(' ');
   } catch (error) {
-    warning.textContent = error.message === 'Failed to fetch' ? 'News could not be loaded. Check your connection and try again.' : error.message;
-    status.textContent = articles.length ? 'Previously loaded stories are still available.' : 'No news loaded. Please try again.';
+    newsFailed = true;
+    warning.textContent = 'News could not be refreshed. Check your connection and try Load Latest News again.';
   } finally {
     loadingNews = false;
+    articlesElement.setAttribute('aria-busy', 'false');
     loadButton.disabled = false;
     loadButton.textContent = 'Load Latest News';
     renderArticles();
@@ -71,35 +101,37 @@ async function deepRead(article) {
   if (loadingDeep) return;
   loadingDeep = true;
   deepPanel.hidden = false;
-  deepPanel.setAttribute('aria-busy', 'true');
-  deepResult.replaceChildren(element('p', `Retrieving “${article.title}”…`));
-  renderArticles();
+  deepStatus.textContent = `Retrieving “${article.title}”…`;
+  deepResult.replaceChildren();
+  deepResult.setAttribute('aria-busy', 'true');
+  deepPanel.focus();
+  updateDeepButtons();
   try {
-    const response = await fetch('/api/scrape', {
+    const data = await requestJSON('/api/scrape', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: article.url }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Deep Read failed. Please try again.');
+    if (typeof data.content !== 'string' || !data.content.trim()) throw new Error('Empty response');
+    deepStatus.textContent = 'Article retrieved. Showing a short main-content excerpt.';
     deepResult.replaceChildren(element('h3', data.title), element('p', `${data.domain} · Firecrawl excerpt`, 'metadata'));
     if (data.description) deepResult.append(element('p', data.description));
     deepResult.append(element('p', data.content, 'excerpt'), originalLink(article.url));
-  } catch {
+  } catch (error) {
+    deepStatus.textContent = scrapeError(error);
     const retry = element('button', 'Retry Deep Read');
     retry.type = 'button';
     retry.addEventListener('click', () => deepRead(article));
-    deepResult.replaceChildren(element('h3', article.title), element('p', 'Deep Read could not retrieve this article. Try again or open the original.'), retry, originalLink(article.url));
+    deepResult.replaceChildren(element('h3', article.title), retry, originalLink(article.url));
   } finally {
     loadingDeep = false;
-    deepPanel.setAttribute('aria-busy', 'false');
-    renderArticles();
+    deepResult.setAttribute('aria-busy', 'false');
+    updateDeepButtons();
   }
 }
 
 const explorerForm = document.querySelector('#explorer-form');
 const pageUrl = document.querySelector('#page-url');
 const scrapeButton = document.querySelector('#scrape-page');
-const explorerOutput = document.querySelector('#explorer-output');
 const explorerStatus = document.querySelector('#explorer-status');
 const explorerResult = document.querySelector('#explorer-result');
 let loadingExplorer = false;
@@ -107,7 +139,6 @@ let loadingExplorer = false;
 explorerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (loadingExplorer) return;
-  explorerResult.replaceChildren();
   let url;
   try {
     const value = pageUrl.value.trim();
@@ -120,25 +151,20 @@ explorerForm.addEventListener('submit', async (event) => {
     pageUrl.focus();
     return;
   }
+  explorerResult.replaceChildren();
   pageUrl.removeAttribute('aria-invalid');
   loadingExplorer = true;
   scrapeButton.disabled = true;
+  pageUrl.readOnly = true;
   scrapeButton.textContent = 'Scraping page…';
-  explorerOutput.setAttribute('aria-busy', 'true');
+  explorerResult.setAttribute('aria-busy', 'true');
   explorerStatus.textContent = `Retrieving ${url.href}…`;
   try {
-    const response = await fetch('/api/scrape', {
+    const data = await requestJSON('/api/scrape', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: url.href }),
     });
-    if (!response.ok) {
-      explorerStatus.textContent = response.status === 400
-        ? 'Enter a public http:// or https:// page URL. Local addresses and URLs containing credentials are not supported.'
-        : 'This page could not be retrieved. Try Scrape Page again or choose another public page.';
-      if (response.status === 400) pageUrl.setAttribute('aria-invalid', 'true');
-      return;
-    }
-    const data = await response.json();
+    if (typeof data.content !== 'string' || !data.content.trim()) throw new Error('Empty response');
     explorerResult.replaceChildren(
       element('h3', data.title),
       element('p', `${data.domain} · Firecrawl excerpt`, 'metadata'),
@@ -147,12 +173,14 @@ explorerForm.addEventListener('submit', async (event) => {
     if (data.description) explorerResult.append(element('p', data.description));
     explorerResult.append(element('p', data.content, 'excerpt'), originalLink(url.href, 'Open Original Page'));
     explorerStatus.textContent = 'Page retrieved. Showing a limited excerpt.';
-  } catch {
-    explorerStatus.textContent = 'This page could not be retrieved. Check your connection and try Scrape Page again.';
+  } catch (error) {
+    explorerStatus.textContent = `${scrapeError(error)} Select Scrape Page to retry.`;
+    if (error.status === 400) pageUrl.setAttribute('aria-invalid', 'true');
   } finally {
     loadingExplorer = false;
     scrapeButton.disabled = false;
+    pageUrl.readOnly = false;
     scrapeButton.textContent = 'Scrape Page';
-    explorerOutput.setAttribute('aria-busy', 'false');
+    explorerResult.setAttribute('aria-busy', 'false');
   }
 });
