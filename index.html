@@ -11,7 +11,7 @@
   <body>
     <main>
       <header>
-        <p class="edition">AI News Assistant · Phase 1</p>
+        <p class="edition">AI News Assistant · Phase 2</p>
         <h1>AI News Briefing</h1>
         <p class="subtitle">Discover stories with RSS. Read one more closely with Firecrawl.</p>
       </header>
@@ -32,7 +32,21 @@
         <p id="news-warning" role="status"></p>
         <div id="articles"></div>
       </section>
-      <noscript>JavaScript is required to load news and use Deep Read.</noscript>
+      <section id="web-explorer" aria-labelledby="explorer-title">
+        <h2 id="explorer-title">Web Explorer</h2>
+        <form id="explorer-form" class="controls" novalidate>
+          <div class="filter">
+            <label for="page-url">Explore Any Web Page</label>
+            <input id="page-url" type="url" required maxlength="2048" placeholder="https://example.com" aria-describedby="explorer-status">
+          </div>
+          <button id="scrape-page" type="submit">Scrape Page</button>
+        </form>
+        <div id="explorer-output" aria-live="polite" aria-busy="false">
+          <p id="explorer-status" role="status">Enter one public page URL to retrieve an excerpt with Firecrawl.</p>
+          <div id="explorer-result"></div>
+        </div>
+      </section>
+      <noscript>JavaScript is required to load news, use Deep Read, and explore a page.</noscript>
     </main>
   </body>
 </html>

@@ -1,6 +1,6 @@
 # AI News Assistant
 
-Phase 1: three RSS sources, local keyword filtering, and one-article Deep Read.
+Phase 2: three RSS sources, local keyword filtering, one-article Deep Read, and Web Explorer.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ Firecrawl credits. `npm run build` validates JavaScript and copies only
 
 Keep the existing GitHub/Vercel project. `vercel.json` sets the static output to
 `dist`; the root `api/news.js` and `api/scrape.js` remain Vercel Node functions.
-Set `FIRECRAWL_API_KEY` in Vercel Environment Variables before deploying Phase 1.
+Set `FIRECRAWL_API_KEY` in Vercel Environment Variables before deploying.
 The local key is never included in the build. No push or deployment is performed
 by the local scripts.
 
@@ -24,4 +24,9 @@ Deep Read sends one selected URL to Firecrawl Scrape and displays at most 6,000
 characters as text. It does not crawl or automatically scrape loaded articles.
 Unavailable feeds produce a warning while available stories remain usable.
 
-Phase 2 and later features are not implemented.
+Web Explorer accepts one public http:// or https:// URL per submission and reuses
+`/api/scrape`. Its result appears below its form, separate from RSS and Deep Read.
+It displays the title, domain, URL, optional description, limited excerpt, and
+an original-page link. Invalid URLs and failures leave the news feed intact.
+
+Phase 3 and later features are not implemented.

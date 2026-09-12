@@ -62,3 +62,7 @@ article h3 { margin: 12px 0; }
 #deep-read { margin-top: 24px; padding: 20px; background: #eef3df; border: 2px solid #192e27; overflow-wrap: anywhere; }
 .excerpt { white-space: pre-wrap; }
 #news-warning { color: #7a390e; }
+
+#web-explorer { margin-top: 32px; padding-top: 24px; border-top: 3px solid #192e27; }
+#explorer-result { overflow-wrap: anywhere; }
+#explorer-status { overflow-wrap: anywhere; }

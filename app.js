@@ -16,8 +16,8 @@ function element(tag, text, className) {
   if (className) node.className = className;
   return node;
 }
-function originalLink(url) {
-  const link = element('a', 'Read Original Article');
+function originalLink(url, label = 'Read Original Article') {
+  const link = element('a', label);
   link.href = url;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
@@ -95,3 +95,64 @@ async function deepRead(article) {
     renderArticles();
   }
 }
+
+const explorerForm = document.querySelector('#explorer-form');
+const pageUrl = document.querySelector('#page-url');
+const scrapeButton = document.querySelector('#scrape-page');
+const explorerOutput = document.querySelector('#explorer-output');
+const explorerStatus = document.querySelector('#explorer-status');
+const explorerResult = document.querySelector('#explorer-result');
+let loadingExplorer = false;
+
+explorerForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (loadingExplorer) return;
+  explorerResult.replaceChildren();
+  let url;
+  try {
+    const value = pageUrl.value.trim();
+    if (!value || value.length > 2048) throw new Error();
+    url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error();
+  } catch {
+    pageUrl.setAttribute('aria-invalid', 'true');
+    explorerStatus.textContent = 'Enter one valid public URL starting with http:// or https://.';
+    pageUrl.focus();
+    return;
+  }
+  pageUrl.removeAttribute('aria-invalid');
+  loadingExplorer = true;
+  scrapeButton.disabled = true;
+  scrapeButton.textContent = 'Scraping page…';
+  explorerOutput.setAttribute('aria-busy', 'true');
+  explorerStatus.textContent = `Retrieving ${url.href}…`;
+  try {
+    const response = await fetch('/api/scrape', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url.href }),
+    });
+    if (!response.ok) {
+      explorerStatus.textContent = response.status === 400
+        ? 'Enter a public http:// or https:// page URL. Local addresses and URLs containing credentials are not supported.'
+        : 'This page could not be retrieved. Try Scrape Page again or choose another public page.';
+      if (response.status === 400) pageUrl.setAttribute('aria-invalid', 'true');
+      return;
+    }
+    const data = await response.json();
+    explorerResult.replaceChildren(
+      element('h3', data.title),
+      element('p', `${data.domain} · Firecrawl excerpt`, 'metadata'),
+      element('p', data.url),
+    );
+    if (data.description) explorerResult.append(element('p', data.description));
+    explorerResult.append(element('p', data.content, 'excerpt'), originalLink(url.href, 'Open Original Page'));
+    explorerStatus.textContent = 'Page retrieved. Showing a limited excerpt.';
+  } catch {
+    explorerStatus.textContent = 'This page could not be retrieved. Check your connection and try Scrape Page again.';
+  } finally {
+    loadingExplorer = false;
+    scrapeButton.disabled = false;
+    scrapeButton.textContent = 'Scrape Page';
+    explorerOutput.setAttribute('aria-busy', 'false');
+  }
+});
