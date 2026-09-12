@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import news, { parseFeed, sources } from '../api/news.js';
-import scrape from '../api/scrape.js';
+import scrape, { cleanExcerpt } from '../api/scrape.js';
 
 function setKey(t, value) {
   const previous = process.env.FIRECRAWL_API_KEY;
@@ -91,7 +91,7 @@ test('Deep Read performs exactly one scrape, limits fields and never forwards ke
   assert.equal(calls[0].url, 'https://api.firecrawl.dev/v2/scrape');
   assert.deepEqual(calls[0].body, { url: 'https://example.com/article', formats: ['markdown'], onlyMainContent: true, timeout: 30000 });
   assert.deepEqual(Object.keys(res.body), ['title', 'domain', 'url', 'description', 'content']);
-  assert.equal(res.body.content.length, 6000);
+  assert.ok(res.body.content.length <= 1500);
   assert.ok(!JSON.stringify(res.body).includes('test-secret-value'));
 });
 
@@ -111,4 +111,14 @@ test('Firecrawl HTTP, timeout, malformed and empty responses give a retryable er
     assert.match(res.body.error, /Try again/);
     assert.ok(!JSON.stringify(res.body).includes('test-secret-value'));
   }
+});
+
+
+test('excerpt removes WIRED controls, markdown URLs and comment sections but keeps linked prose', () => {
+  const result = cleanExcerpt('[Skip to main content](https://example.com/#main)\n\nComment3Save StorySave this story\n\nComment3Save StorySave this story\n\nResearchers describe [a new approach](https://example.com/a_(b)) to **AI**.\n\nA second paragraph.\n\n## Comments (3)\n\nReader comment.\n\n## You Might Also Like\n\nUnrelated story.');
+  assert.equal(result, 'Researchers describe a new approach to AI.\n\nA second paragraph.');
+  assert.equal(cleanExcerpt('First.\n\nFirst.\n\nSecond.\n\nThird.\n\nFourth.'), 'First.\n\nSecond.\n\nThird.');
+  assert.equal(cleanExcerpt('[Skip to main content](https://example.com)'), '');
+  assert.equal(cleanExcerpt('Comment Loader Save StorySave this story\n\nArticle paragraph.'), 'Article paragraph.');
+  assert.ok(cleanExcerpt('Article text '.repeat(500)).length <= 1500);
 });

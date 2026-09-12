@@ -1,3 +1,22 @@
+export function cleanExcerpt(markdown) {
+  const paragraphs = markdown
+    // Comments and recommendation sections are not part of the article.
+    .split(/^#{1,6}\s+(?:Comments?(?:\s*\(\d+\))?|You Might Also Like|Related (?:Articles|Stories))\s*$/im)[0]
+    .replace(/!\[[^\]]*\]\([^\n]*?\)/g, '')
+    .replace(/\[([^\]]+)\]\((?:[^()\n]|\([^()\n]*\))*\)/g, '$1')
+    .replace(/<[^>]*>/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\\([_*[\]])/g, '$1')
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
+    .filter((paragraph) => paragraph && !/^(?:Skip to main content|Back to top|(?:Comment\s*(?:\d+|Loader)?\s*|Save Story\s*|Save this story\s*|Share\s*)+|Sign in(?: or create account)?|Subscribe)$/i.test(paragraph));
+  const unique = paragraphs.filter((paragraph, index) => paragraph !== paragraphs[index - 1]);
+  const content = unique.slice(0, 3).join('\n\n');
+  if (content.length <= 1500) return content;
+  return content.slice(0, 1499).replace(/\s+\S*$/, '').trimEnd() + '…';
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -27,12 +46,14 @@ export default async function handler(req, res) {
     if (!result.success || !result.data || typeof result.data.markdown !== 'string' || !result.data.markdown.trim() || result.data.metadata?.statusCode >= 400) throw new Error();
     // Only these bounded fields reach the browser; never forward upstream errors or raw responses.
     const limited = (value, limit) => typeof value === 'string' ? value.split(key).join('[redacted]').slice(0, limit) : '';
+    const content = cleanExcerpt(limited(result.data.markdown, 100000));
+    if (!content) throw new Error();
     return res.status(200).json({
       title: limited(result.data.metadata?.title, 300) || url.hostname,
       domain: url.hostname,
       url: url.href,
       description: limited(result.data.metadata?.description, 1000),
-      content: limited(result.data.markdown.trim(), 6000),
+      content,
     });
   } catch {
     return res.status(502).json({ error: 'Deep Read could not retrieve this page. Try again or open the original article.' });
