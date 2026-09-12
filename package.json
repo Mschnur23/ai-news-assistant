@@ -1,0 +1,16 @@
+{
+  "name": "ai-news-assistant",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "build": "node --check app.js && node --check api/news.js && node --check api/scrape.js && node scripts/build.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "fast-xml-parser": "5.11.1"
+  }
+}

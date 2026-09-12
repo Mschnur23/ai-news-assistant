@@ -3,16 +3,36 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Breaking News: Your Website Exists.</title>
+    <title>AI News Briefing</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
   </head>
   <body>
     <main>
-      <p class="edition">AI News Assistant · Phase 0</p>
-      <h1>Breaking News:<br>Your Website Exists.</h1>
-      <p class="subtitle">A small page. A big first step.</p>
-      <p class="status">Codex -&gt; GitHub -&gt; Vercel: <strong>ALIVE</strong></p>
+      <header>
+        <p class="edition">AI News Assistant · Phase 1</p>
+        <h1>AI News Briefing</h1>
+        <p class="subtitle">Discover stories with RSS. Read one more closely with Firecrawl.</p>
+      </header>
+      <section aria-labelledby="radar-title">
+        <h2 id="radar-title">News Radar</h2>
+        <div class="controls">
+          <button id="load-news" type="button">Load Latest News</button>
+          <div class="filter">
+            <label for="keyword">Filter by keyword or topic</label>
+            <input id="keyword" type="search" placeholder="Search titles and summaries">
+          </div>
+        </div>
+        <section id="deep-read" aria-labelledby="deep-title" aria-live="polite" hidden>
+          <h2 id="deep-title">Deep Read · Firecrawl</h2>
+          <div id="deep-result"></div>
+        </section>
+        <p id="news-status" role="status">Load the latest stories from WIRED, TechCrunch, and VentureBeat.</p>
+        <p id="news-warning" role="status"></p>
+        <div id="articles"></div>
+      </section>
+      <noscript>JavaScript is required to load news and use Deep Read.</noscript>
     </main>
   </body>
 </html>
