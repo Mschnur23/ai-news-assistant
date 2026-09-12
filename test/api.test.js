@@ -103,6 +103,7 @@ test('Firecrawl HTTP, timeout, malformed and empty responses give a retryable er
     async () => { throw new Error('test-secret-value'); },
     async () => new Response('not JSON'),
     async () => Response.json({ success: true, data: { markdown: '' } }),
+    async () => Response.json({ success: true, data: { markdown: 'Checking your Browser...\nVerifying…\nStuck? Troubleshoot' } }),
     async () => Response.json({ success: false }),
   ]) {
     mock.mock.mockImplementation(implementation);
@@ -121,4 +122,22 @@ test('excerpt removes WIRED controls, markdown URLs and comment sections but kee
   assert.equal(cleanExcerpt('[Skip to main content](https://example.com)'), '');
   assert.equal(cleanExcerpt('Comment Loader Save StorySave this story\n\nArticle paragraph.'), 'Article paragraph.');
   assert.ok(cleanExcerpt('Article text '.repeat(500)).length <= 1500);
+});
+
+
+test('verification controls are removed without dropping adjacent or quoted article prose', () => {
+  assert.equal(cleanExcerpt('Success!\n\nA legitimate article paragraph.'), 'Success!\n\nA legitimate article paragraph.');
+  assert.equal(cleanExcerpt('Verifying sources is important.\n\nSuccess!'), 'Verifying sources is important.\n\nSuccess!');
+  const prose = 'Verifying sources is essential. The article describes “Checking your Browser...” and “Stuck? Troubleshoot” messages.';
+  for (const controls of [
+    'Checking your Browser...\nVerifying...\nStuck? Troubleshoot',
+    '## Checking your Browser…\n\n**Verifying…**\n\nStuck? [Troubleshoot](https://example.com/help)',
+    'Verification expired\n\nRefresh\n\nVerification expired\n\nCloudflare, opens in a new tab\n\nPrivacy • Help\n\nSkip to content',
+    'CHECKING YOUR BROWSER... Verifying... Stuck? Troubleshoot',
+    'Checking your Browser...\n\nSuccess!\n\nVerification failed\n\nTroubleshoot',
+  ]) {
+    assert.equal(cleanExcerpt(controls), '');
+    assert.equal(cleanExcerpt(`${controls}\n${prose}`), prose);
+    assert.equal(cleanExcerpt(`First article paragraph.\n${controls}\n\n${prose}`), `First article paragraph.\n\n${prose}`);
+  }
 });

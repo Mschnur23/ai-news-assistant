@@ -1,4 +1,5 @@
 export function cleanExcerpt(markdown) {
+  const hasVerificationUI = /^\s*(?:#{1,6}\s*)?(?:\*\*)?(?:Checking your browser|Verifying|Verification (?:failed|expired))[.…]*(?:\*\*)?\s*$/im.test(markdown);
   const paragraphs = markdown
     // Comments and recommendation sections are not part of the article.
     .split(/^#{1,6}\s+(?:Comments?(?:\s*\(\d+\))?|You Might Also Like|Related (?:Articles|Stories))\s*$/im)[0]
@@ -8,9 +9,13 @@ export function cleanExcerpt(markdown) {
     .replace(/^#{1,6}\s+/gm, '')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\\([_*[\]])/g, '$1')
+    // Match whole UI lines only, so article prose mentioning verification survives.
+    .split('\n')
+    .filter((line) => !/^(?:(?:(?:Checking your browser|Verifying|Verification (?:failed|expired))[.…]*|Stuck\?\s*Troubleshoot|Skip to (?:main )?content)\s*)+$/i.test(line.trim()) && !(hasVerificationUI && /^(?:Success!|Troubleshoot|Refresh|Cloudflare, opens in a new tab|Privacy\s*•\s*Help)$/i.test(line.trim())))
+    .join('\n')
     .split(/\n\s*\n/)
     .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
-    .filter((paragraph) => paragraph && !/^(?:Skip to main content|Back to top|(?:Comment\s*(?:\d+|Loader)?\s*|Save Story\s*|Save this story\s*|Share\s*)+|Sign in(?: or create account)?|Subscribe)$/i.test(paragraph));
+    .filter((paragraph) => paragraph && !/^(?:Skip to (?:main )?content|Back to top|(?:Comment\s*(?:\d+|Loader)?\s*|Save Story\s*|Save this story\s*|Share\s*)+|Sign in(?: or create account)?|Subscribe)$/i.test(paragraph));
   const unique = paragraphs.filter((paragraph, index) => paragraph !== paragraphs[index - 1]);
   const content = unique.slice(0, 3).join('\n\n');
   if (content.length <= 1500) return content;
