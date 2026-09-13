@@ -134,7 +134,36 @@ const pageUrl = document.querySelector('#page-url');
 const scrapeButton = document.querySelector('#scrape-page');
 const explorerStatus = document.querySelector('#explorer-status');
 const explorerResult = document.querySelector('#explorer-result');
+const exploreDepth = document.querySelector('#explore-depth');
 let loadingExplorer = false;
+let activeCrawl = null;
+async function exploreSite(url, depth) {
+  if (!activeCrawl || activeCrawl.url !== url || activeCrawl.depth !== depth) {
+    explorerStatus.textContent = 'Starting crawl…';
+    const job = await requestJSON('/api/crawl', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,depth})});
+    if (!job.id || !job.token) throw new Error('Invalid crawl');
+    activeCrawl = {...job,url,depth};
+  }
+  for (let attempt=0; attempt<100; attempt++) {
+    const data = await requestJSON(`/api/crawl/status?id=${encodeURIComponent(activeCrawl.id)}&token=${encodeURIComponent(activeCrawl.token)}`);
+    if (!Array.isArray(data.pages) || !['scraping','completed','failed','cancelled'].includes(data.status)) throw new Error('Invalid progress');
+    explorerResult.replaceChildren(element('h3','Site Exploration Result'),element('p',`Starting URL: ${data.url}`),element('p',`Depth: ${data.depth} · Pages retrieved: ${data.completed} · 25-page cap reached: ${data.capReached?'Yes':'No'}`));
+    for (const page of data.pages.slice(0,25)) {
+      const card=element('article','');
+      card.append(element('h4',page.title),element('p',page.url),element('p',page.content,'excerpt'),originalLink(page.url,'Open Page'));
+      explorerResult.append(card);
+    }
+    if (data.status !== 'scraping') {
+      activeCrawl=null;
+      explorerStatus.textContent = data.status==='completed' ? `Completed: ${data.completed} pages.${data.capReached?' Stopped at the 25-page classroom limit.':''}${!data.pages.length?' No readable pages were returned. Try another public URL.':''}` : `Crawl ${data.status}. ${data.pages.length} readable pages retained. Try another public URL.`;
+      if(data.pages.length<data.completed) explorerStatus.textContent+=' Some retrieved pages could not be displayed as readable internal pages.';
+      return;
+    }
+    explorerStatus.textContent=`Exploring site… ${data.completed} pages retrieved. You can keep using News and Job Scout.`;
+    await new Promise(resolve=>setTimeout(resolve,3000));
+  }
+  throw new Error('Still running');
+}
 
 explorerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -151,15 +180,20 @@ explorerForm.addEventListener('submit', async (event) => {
     pageUrl.focus();
     return;
   }
-  explorerResult.replaceChildren();
+  const depth = Number(exploreDepth.value);
+  if (!Number.isInteger(depth) || depth<0 || depth>3) return;
+  if(depth===0) activeCrawl=null;
+  if (!activeCrawl || activeCrawl.url !== url.href || activeCrawl.depth !== depth) explorerResult.replaceChildren();
   pageUrl.removeAttribute('aria-invalid');
   loadingExplorer = true;
   scrapeButton.disabled = true;
   pageUrl.readOnly = true;
-  scrapeButton.textContent = 'Scraping page…';
+  exploreDepth.disabled = true;
+  scrapeButton.textContent = 'Exploring…';
   explorerResult.setAttribute('aria-busy', 'true');
-  explorerStatus.textContent = `Retrieving ${url.href}…`;
+  explorerStatus.textContent = 'Reading page…';
   try {
+    if(depth>0) { await exploreSite(url.href,depth); return; }
     const data = await requestJSON('/api/scrape', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: url.href }),
@@ -174,13 +208,15 @@ explorerForm.addEventListener('submit', async (event) => {
     explorerResult.append(element('p', data.content, 'excerpt'), originalLink(url.href, 'Open Original Page'));
     explorerStatus.textContent = 'Page retrieved. Showing a limited excerpt.';
   } catch (error) {
-    explorerStatus.textContent = `${scrapeError(error)} Select Scrape Page to retry.`;
+    if (error.status === 400) activeCrawl = null;
+    explorerStatus.textContent = activeCrawl ? 'Progress could not be completed yet. Select Check Crawl Progress to resume without starting another crawl. Previously retrieved pages remain below.' : `${scrapeError(error)} Select Explore Site to retry.`;
     if (error.status === 400) pageUrl.setAttribute('aria-invalid', 'true');
   } finally {
     loadingExplorer = false;
     scrapeButton.disabled = false;
     pageUrl.readOnly = false;
-    scrapeButton.textContent = 'Scrape Page';
+    exploreDepth.disabled = false;
+    scrapeButton.textContent = activeCrawl ? 'Check Crawl Progress' : 'Explore Site';
     explorerResult.setAttribute('aria-busy', 'false');
   }
 });

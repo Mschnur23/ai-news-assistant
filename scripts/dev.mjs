@@ -2,6 +2,8 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import news from '../api/news.js';
 import scrape from '../api/scrape.js';
+import crawl from '../api/crawl.js';
+import crawlStatus from '../api/crawl/status.js';
 import scanJobs from '../api/jobs/scan.js';
 
 const files = { '/': ['index.html', 'text/html'], '/index.html': ['index.html', 'text/html'], '/style.css': ['style.css', 'text/css'], '/app.js': ['app.js', 'text/javascript'] };
@@ -10,15 +12,16 @@ createServer(async (req, res) => {
   res.json = (value) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(value)); };
   try {
     const path = new URL(req.url, 'http://localhost').pathname;
+    if (path === '/api/crawl/status') return await crawlStatus(req, res);
     if (path === '/api/news') return await news(req, res);
-    if (path === '/api/scrape' || path === '/api/jobs/scan') {
+    if (path === '/api/scrape' || path === '/api/jobs/scan' || path === '/api/crawl') {
       let body = '';
       for await (const chunk of req) {
         body += chunk;
         if (body.length > (path === '/api/jobs/scan' ? 12000 : 4096)) return res.status(413).json({ error: 'Request is too large.' });
       }
       req.body = body;
-      return await (path === '/api/jobs/scan' ? scanJobs : scrape)(req, res);
+      return await (path === '/api/jobs/scan' ? scanJobs : path === '/api/crawl' ? crawl : scrape)(req, res);
     }
     const file = files[path];
     if (!file || !['GET', 'HEAD'].includes(req.method)) return res.status(404).end('Not found');

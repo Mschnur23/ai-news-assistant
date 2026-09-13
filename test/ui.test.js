@@ -22,7 +22,7 @@ function setup() {
   const requests = [];
   let next;
   const fetch = (url, options) => { requests.push({ url, options }); return next(); };
-  runInNewContext(readFileSync('app.js', 'utf8'), { document: { querySelector: selector => nodes[selector.slice(1)], createElement: tag => new Element(tag) }, fetch, URL, AbortSignal, Date });
+  runInNewContext(readFileSync('app.js', 'utf8'), { document: { querySelector: selector => nodes[selector.slice(1)], createElement: tag => new Element(tag) }, fetch, URL, AbortSignal, Date, setTimeout: callback => callback() });
   return { nodes, requests, focused: () => focused, respond: callback => { next = callback; } };
 }
 const article = { title: 'AI research', summary: 'Robots learn', source: 'WIRED', url: 'https://example.com/story', publishedAt: '' };
@@ -121,4 +121,20 @@ test('Job Scout validates first source, shows partial results with three bullets
  ui.respond(()=>ok({sources:[{url:'https://example.com/jobs',status:'Extracted',message:'1 job'},{url:'https://example.com/broken',status:'Could not extract',message:'Try another page.'}],jobs:[{title:'Junior Analyst',domain:'example.com',sourceUrl:'https://example.com/jobs',jobUrl:'https://example.com/job',bullets:[{heading:'Accessible start',text:'Junior Analyst'},{heading:'Skills you can build',text:'Not specified'},{heading:'Career exposure',text:'Not specified'}]}]}));
  await n['jobs-form'].emit('submit');assert.equal(n['jobs-results'].querySelectorAll('li').length,3);assert.equal(n.articles.children.length,1);assert.match(n['job-source-2'].textContent,/Could not extract/);assert.equal(n['scan-jobs'].disabled,false);
  ui.respond(()=>Promise.reject(new Error('network')));await n['jobs-form'].emit('submit');assert.equal(n['job-url-1'].readOnly,false);assert.match(n['jobs-status'].textContent,/Try again/);assert.equal(n.articles.children.length,1);
+});
+
+
+test('crawl progress, cap cards and failed status preserve other features and allow same-job retry',async()=>{
+ const ui=setup(),n=ui.nodes;ui.respond(()=>ok(news));await n['load-news'].emit('click');
+ n['page-url'].value='https://example.com';n['explore-depth'].value='2';
+ const progress={url:'https://example.com/',depth:2,completed:1,pages:[page],capReached:false,status:'scraping'};
+ const replies=[{id:'job',token:'receipt'},progress,{...progress,status:'completed',completed:25,capReached:true}];
+ ui.respond(()=>ok(replies.shift()));await n['explorer-form'].emit('submit');
+ assert.equal(ui.requests[1].url,'/api/crawl');assert.equal(JSON.parse(ui.requests[1].options.body).depth,2);
+ assert.match(n['explorer-status'].textContent,/25-page/);assert.equal(n['explorer-result'].querySelectorAll('article').length,1);assert.equal(n['explore-depth'].disabled,false);assert.equal(n.articles.children.length,1);
+ let count=0;ui.respond(()=>++count===1?ok({id:'job',token:'receipt'}):Promise.reject(new Error('network')));
+ await n['explorer-form'].emit('submit');assert.match(n['scrape-page'].textContent,/Check Crawl Progress/);
+ const before=ui.requests.length;ui.respond(()=>ok({...progress,status:'failed'}));await n['explorer-form'].emit('submit');
+ assert.ok(ui.requests[before].url.startsWith('/api/crawl/status'));assert.match(n['explorer-status'].textContent,/failed/);assert.equal(n.articles.children.length,1);
+ n['explore-depth'].value='0';ui.respond(()=>ok(page));await n['explorer-form'].emit('submit');assert.equal(ui.requests.at(-1).url,'/api/scrape');
 });

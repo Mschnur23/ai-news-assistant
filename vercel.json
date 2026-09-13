@@ -7,6 +7,12 @@
     },
     "api/jobs/scan.js": {
       "maxDuration": 60
+    },
+    "api/crawl.js": {
+      "maxDuration": 60
+    },
+    "api/crawl/status.js": {
+      "maxDuration": 60
     }
   }
 }

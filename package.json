@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
-    "build": "node --check app.js && node --check api/news.js && node --check api/scrape.js && node --check api/jobs/scan.js && node --check lib/jobs.js && node --check lib/job-urls.js && node --check lib/firecrawl.js && node scripts/build.mjs",
+    "build": "node --check app.js && node --check api/news.js && node --check api/scrape.js && node --check api/jobs/scan.js && node --check lib/jobs.js && node --check lib/job-urls.js && node --check lib/firecrawl.js && node --check api/crawl.js && node --check api/crawl/status.js && node --check lib/crawl.js && node scripts/build.mjs",
     "test": "node --test"
   },
   "dependencies": {

@@ -43,11 +43,11 @@ h1 {
   line-height: 1.5;
 }
 
-button, input { font: inherit; }
-button, input { min-height: 44px; padding: 12px; border: 2px solid #192e27; border-radius: 4px; }
+button, input, select { font: inherit; }
+button, input, select { min-height: 44px; padding: 12px; border: 2px solid #192e27; border-radius: 4px; }
 button { background: #192e27; color: #fffdf5; cursor: pointer; }
 button:disabled { opacity: 0.6; cursor: wait; }
-input { width: 100%; background: white; color: #192e27; }
+input, select { width: 100%; background: white; color: #192e27; }
 :focus-visible { outline: 3px solid #ae7100; outline-offset: 3px; }
 a { color: #245b45; text-underline-offset: 3px; }
 h2 { font-size: 1.4rem; }
@@ -104,3 +104,6 @@ input:read-only { background: #f4efdf; }
 #jobs-results li { margin: 12px 0; }
 #jobs-results ul { padding-left: 22px; }
 #jobs-status, .job-source p { overflow-wrap: anywhere; }
+
+.depth-control { flex: 1 1 220px; min-width: 0; }
+@media (max-width: 540px) { .depth-control { flex-basis: auto; } }

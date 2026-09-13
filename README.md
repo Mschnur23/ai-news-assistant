@@ -57,3 +57,22 @@ Firecrawl. Use `https://www.usajobs.gov/Search/Results?wt=15328` for public
 internship results. Verified internship employment types count as early-career
 evidence even when the role title is simply “MATHEMATICIAN”. Sources are never
 silently substituted. Recheck availability before each workshop.
+
+## Web Explorer depth
+
+Depth 0 keeps `/api/scrape`. Depths 1–3 start Firecrawl Crawl through
+`POST /api/crawl` and poll `GET /api/crawl/status`. Configuration fixes discovery
+depth to the selected value, skips sitemaps, ignores query variants, excludes
+external links and subdomains, respects robots.txt, and caps each crawl at 25
+pages. Login paths and common downloads are excluded. No new dependencies.
+
+Status responses contain bounded clean excerpts, progress and cap information.
+A signed, one-day crawl receipt uses the existing server key to bind results to
+this app's crawl settings without a database. If a progress request fails, Check
+Crawl Progress resumes the same job. Automatic polling pauses after 100 checks;
+this does not cancel the remote crawl, which remains capped at 25 pages.
+
+Live acceptance (2026-09-13): Books to Scrape returned one page at depth 0 and
+25 pages at each of depths 1, 2 and 3. A transient start failure at depth 3
+succeeded on retry. The automated tests also cover unsafe URLs, result pagination,
+foreign-host result filtering, failures, cap enforcement and depth-0 regression.
