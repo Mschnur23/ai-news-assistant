@@ -184,3 +184,63 @@ explorerForm.addEventListener('submit', async (event) => {
     explorerResult.setAttribute('aria-busy', 'false');
   }
 });
+
+
+const jobsForm = document.querySelector('#jobs-form');
+const scanJobs = document.querySelector('#scan-jobs');
+const jobsStatus = document.querySelector('#jobs-status');
+const jobsResults = document.querySelector('#jobs-results');
+const jobInputs = [1,2,3,4,5].map(i => document.querySelector(`#job-url-${i}`));
+const sourceStatuses = [1,2,3,4,5].map(i => document.querySelector(`#job-source-${i}`));
+let scanningJobs = false;
+jobsForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (scanningJobs) return;
+  const entries = [];
+  jobInputs.forEach(input => input.removeAttribute('aria-invalid'));
+  try {
+    for (let i=0;i<jobInputs.length;i++) {
+      const value=jobInputs[i].value.trim();
+      if (!value && i>0) continue;
+      try {
+        const url=new URL(value);
+        if (!['http:','https:'].includes(url.protocol) || url.username || url.password || value.length>2048) throw new Error();
+        url.hash='';entries.push({index:i,url:url.href});
+      } catch { jobInputs[i].setAttribute('aria-invalid','true');jobInputs[i].focus();throw new Error(); }
+    }
+  } catch { jobsStatus.textContent='Enter a valid public HTTP/HTTPS URL in Job Source 1 and each optional field you use.';return; }
+  scanningJobs=true;scanJobs.disabled=true;scanJobs.textContent='Scanning job pages…';
+  jobInputs.forEach(input=>{input.readOnly=true;});
+  sourceStatuses.forEach((node,i)=>{node.textContent=entries.some(entry=>entry.index===i)?'Scanning':'Waiting';});
+  jobsResults.replaceChildren();jobsResults.setAttribute('aria-busy','true');
+  jobsStatus.textContent='Scanning supplied pages and comparing visible roles…';
+  try {
+    const response=await fetch('/api/jobs/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({urls:[...new Set(entries.map(entry=>entry.url))]}),signal:AbortSignal.timeout(60000)});
+    const data=await response.json();
+    if (Array.isArray(data.sources)) for(const entry of entries) {
+      const source=data.sources.find(source=>source.url===entry.url);
+      sourceStatuses[entry.index].textContent=source?`${source.status}: ${source.message}`:'Could not extract';
+    }
+    if(!response.ok) throw Object.assign(new Error(),{status:response.status});
+    if(!Array.isArray(data.jobs)) throw new Error();
+    data.jobs.slice(0,5).forEach((job,index)=>{
+      const card=element('article','');
+      card.append(element('h4',`#${index+1} ${job.title}`));
+      card.append(element('p',[job.employer,job.location,job.domain,job.employmentType,job.postedDate].filter(Boolean).join(' · '),'metadata'));
+      const bullets=element('ul','');
+      for(const bullet of job.bullets.slice(0,3)) {
+        const li=element('li','');li.append(element('strong',`${bullet.heading}: `),element('span',bullet.text));bullets.append(li);
+      }
+      card.append(bullets,originalLink(job.jobUrl || job.sourceUrl,job.jobUrl?'Open Job Posting':'Open Source Page'));
+      jobsResults.append(card);
+    });
+    const failed=data.sources.filter(source=>source.status==='Could not extract').length;
+    jobsStatus.textContent=data.jobs.length?`${data.jobs.length} early-career opportunities found.${failed?' Some sources could not be extracted.':''}`:'No qualifying junior opportunities found. Try more specific junior or graduate job pages.';
+  } catch(error) {
+    for(const entry of entries) if(sourceStatuses[entry.index].textContent==='Scanning') sourceStatuses[entry.index].textContent='Could not extract';
+    jobsStatus.textContent=error.status===400?'Enter 1–5 public job URLs. Private/internal addresses, custom ports, LinkedIn and Indeed are not supported.':error.status===503?'Job Scout is not configured. Ask the site owner to check the Firecrawl key.':'Job pages could not be compared. Try again or choose other public job pages.';
+  } finally {
+    scanningJobs=false;scanJobs.disabled=false;scanJobs.textContent='Find Junior Opportunities';
+    jobInputs.forEach(input=>{input.readOnly=false;});jobsResults.setAttribute('aria-busy','false');
+  }
+});

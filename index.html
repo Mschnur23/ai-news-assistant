@@ -48,6 +48,21 @@
           <div id="explorer-result" aria-busy="false"></div>
         </div>
       </section>
+      <section id="job-scout" aria-labelledby="jobs-title">
+        <h2 id="jobs-title">Junior Job Scout</h2>
+        <p>Paste up to 5 public job-listing pages. We will compare visible roles and surface promising early-career opportunities.</p>
+        <p>Use a page showing actual listings, not a search homepage. Try <a href="https://www.usajobs.gov/Search/Results?wt=15328" target="_blank" rel="noopener noreferrer">USAJOBS internship results (opens in a new tab)</a> and copy its URL into a field below. The workshop’s old UK Find a Job link currently redirects to a homepage.</p>
+        <form id="jobs-form" novalidate>
+          <div class="job-source"><label for="job-url-1">Job Source 1 URL (required)</label><input id="job-url-1" type="url" inputmode="url" maxlength="2048" required placeholder="https://example.gov/jobs" aria-describedby="job-source-1" autocapitalize="none" spellcheck="false"><p id="job-source-1" class="metadata" role="status">Waiting</p></div>
+          <div class="job-source"><label for="job-url-2">Job Source 2 URL (optional)</label><input id="job-url-2" type="url" inputmode="url" maxlength="2048"  placeholder="https://example.gov/jobs" aria-describedby="job-source-2" autocapitalize="none" spellcheck="false"><p id="job-source-2" class="metadata" role="status">Waiting</p></div>
+          <div class="job-source"><label for="job-url-3">Job Source 3 URL (optional)</label><input id="job-url-3" type="url" inputmode="url" maxlength="2048"  placeholder="https://example.gov/jobs" aria-describedby="job-source-3" autocapitalize="none" spellcheck="false"><p id="job-source-3" class="metadata" role="status">Waiting</p></div>
+          <div class="job-source"><label for="job-url-4">Job Source 4 URL (optional)</label><input id="job-url-4" type="url" inputmode="url" maxlength="2048"  placeholder="https://example.gov/jobs" aria-describedby="job-source-4" autocapitalize="none" spellcheck="false"><p id="job-source-4" class="metadata" role="status">Waiting</p></div>
+          <div class="job-source"><label for="job-url-5">Job Source 5 URL (optional)</label><input id="job-url-5" type="url" inputmode="url" maxlength="2048"  placeholder="https://example.gov/jobs" aria-describedby="job-source-5" autocapitalize="none" spellcheck="false"><p id="job-source-5" class="metadata" role="status">Waiting</p></div>
+          <button id="scan-jobs" type="submit">Find Junior Opportunities</button>
+        </form>
+        <p id="jobs-status" role="status">General early-career comparison, not personalized career advice. Only the pages you supply are scanned.</p>
+        <section aria-labelledby="jobs-results-title"><h3 id="jobs-results-title">Top 5 Junior Opportunities</h3><div id="jobs-results" aria-busy="false"></div></section>
+      </section>
       <noscript>JavaScript is required to load news, use Deep Read, and explore a page.</noscript>
     </main>
   </body>

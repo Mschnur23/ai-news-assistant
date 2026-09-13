@@ -1,3 +1,5 @@
+import { scrapePage } from '../lib/firecrawl.js';
+
 export function cleanExcerpt(markdown) {
   const hasVerificationUI = /^\s*(?:#{1,6}\s*)?(?:\*\*)?(?:Checking your browser|Verifying|Verification (?:failed|expired))[.…]*(?:\*\*)?\s*$/im.test(markdown);
   const paragraphs = markdown
@@ -40,15 +42,8 @@ export default async function handler(req, res) {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) return res.status(503).json({ error: 'Deep Read is not configured. Add the server-side Firecrawl key and restart or redeploy.' });
   try {
-    const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ url: url.href, formats: ['markdown'], onlyMainContent: true, timeout: 30000 }),
-      signal: AbortSignal.timeout(35000),
-    });
-    if (!response.ok) throw new Error();
-    const result = await response.json();
-    if (!result.success || !result.data || typeof result.data.markdown !== 'string' || !result.data.markdown.trim() || result.data.metadata?.statusCode >= 400) throw new Error();
+    const result = { data: await scrapePage(url.href) };
+    if (typeof result.data.markdown !== 'string' || !result.data.markdown.trim()) throw new Error();
     // Only these bounded fields reach the browser; never forward upstream errors or raw responses.
     const limited = (value, limit) => typeof value === 'string' ? value.split(key).join('[redacted]').slice(0, limit) : '';
     const content = cleanExcerpt(limited(result.data.markdown, 100000));

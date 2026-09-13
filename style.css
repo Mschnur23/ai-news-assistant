@@ -96,3 +96,11 @@ input:read-only { background: #f4efdf; }
   .actions button { width: 100%; }
   #deep-read, #explorer-result:not(:empty) { padding: 16px; }
 }
+
+#job-scout { margin-top: 32px; padding-top: 24px; border-top: 3px solid #192e27; }
+.job-source { margin-bottom: 16px; }
+.job-source p { margin: 4px 0; }
+#jobs-results h4 { font: bold 1.3rem/1.4 Georgia, serif; margin: 0 0 12px; }
+#jobs-results li { margin: 12px 0; }
+#jobs-results ul { padding-left: 22px; }
+#jobs-status, .job-source p { overflow-wrap: anywhere; }

@@ -1,5 +1,12 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/scrape.js": { "maxDuration": 60 } }
+  "functions": {
+    "api/scrape.js": {
+      "maxDuration": 60
+    },
+    "api/jobs/scan.js": {
+      "maxDuration": 60
+    }
+  }
 }

@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import news from '../api/news.js';
 import scrape from '../api/scrape.js';
+import scanJobs from '../api/jobs/scan.js';
 
 const files = { '/': ['index.html', 'text/html'], '/index.html': ['index.html', 'text/html'], '/style.css': ['style.css', 'text/css'], '/app.js': ['app.js', 'text/javascript'] };
 createServer(async (req, res) => {
@@ -10,14 +11,14 @@ createServer(async (req, res) => {
   try {
     const path = new URL(req.url, 'http://localhost').pathname;
     if (path === '/api/news') return await news(req, res);
-    if (path === '/api/scrape') {
+    if (path === '/api/scrape' || path === '/api/jobs/scan') {
       let body = '';
       for await (const chunk of req) {
         body += chunk;
-        if (body.length > 4096) return res.status(413).json({ error: 'Request is too large.' });
+        if (body.length > (path === '/api/jobs/scan' ? 12000 : 4096)) return res.status(413).json({ error: 'Request is too large.' });
       }
       req.body = body;
-      return await scrape(req, res);
+      return await (path === '/api/jobs/scan' ? scanJobs : scrape)(req, res);
     }
     const file = files[path];
     if (!file || !['GET', 'HEAD'].includes(req.method)) return res.status(404).end('Not found');

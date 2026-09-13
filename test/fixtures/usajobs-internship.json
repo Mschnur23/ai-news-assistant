@@ -1,0 +1,32 @@
+{
+  "markdown": "## [MATHEMATICIAN](https://www.usajobs.gov/job/846709100)\n\n**Air Force Civilian Career Training** • Department of the Air Force\n\nGunter AFB, Alabama + 47 location(s)\n\nOpen 09/29/2025 to 09/28/2026\n\nJobs open to U.S. Citizens, Nationals or those who owe allegiance to the U.S.Open to the public\n\nShow 2 more\n\nJobs open to U.S. Citizens, Nationals or those who owe allegiance to the U.S.Open to the public\n\nJobs open to current students in an accredited high school, college or graduate institution.Students\n\nJobs open to those who have graduated within the last 2 years or 6 years for Veterans.Recent graduates\n\nShow less\n\nStarting at $49,960 Per year (GS 7-9)InternshipsFull-time\n\nSave job\n\n",
+  "json": {
+    "jobs": [
+      {
+        "title": "MATHEMATICIAN",
+        "employer": "Air Force Civilian Career Training",
+        "location": "Gunter AFB, Alabama + 47 location(s)",
+        "jobUrl": "https://www.usajobs.gov/job/846709100",
+        "postedDate": "09/29/2025",
+        "employmentType": "Internships",
+        "description": "Jobs open to U.S. Citizens, Nationals or those who owe allegiance to the U.S.",
+        "juniorEvidence": [
+          "\"Jobs open to current students in an accredited high school, college or graduate institution.\"",
+          "\"Jobs open to those who have graduated within the last 2 years or 6 years for Veterans.\""
+        ],
+        "transferableSkills": [
+          "Mathematical modeling",
+          "Analytical problem solving"
+        ],
+        "futureRelevantSignals": [
+          "Exposure to data analysis techniques",
+          "Work with simulation software"
+        ],
+        "learningSignals": [
+          "Mentorship from experienced mathematicians"
+        ],
+        "seniorityWarnings": []
+      }
+    ]
+  }
+}

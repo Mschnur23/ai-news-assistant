@@ -113,3 +113,12 @@ test('Explorer validates locally, handles missing configuration and errors, and 
   assert.equal(n['explorer-result'].querySelectorAll('a')[0].target, '_blank');
   assert.equal(ui.requests.at(-1).url, '/api/scrape');
 });
+
+test('Job Scout validates first source, shows partial results with three bullets, and preserves news', async()=>{
+ const ui=setup(),n=ui.nodes;ui.respond(()=>ok(news));await n['load-news'].emit('click');
+ await n['jobs-form'].emit('submit');assert.equal(ui.requests.length,1);assert.equal(n['job-url-1'].attributes['aria-invalid'],'true');
+ n['job-url-1'].value='https://example.com/jobs';n['job-url-2'].value='https://example.com/broken';
+ ui.respond(()=>ok({sources:[{url:'https://example.com/jobs',status:'Extracted',message:'1 job'},{url:'https://example.com/broken',status:'Could not extract',message:'Try another page.'}],jobs:[{title:'Junior Analyst',domain:'example.com',sourceUrl:'https://example.com/jobs',jobUrl:'https://example.com/job',bullets:[{heading:'Accessible start',text:'Junior Analyst'},{heading:'Skills you can build',text:'Not specified'},{heading:'Career exposure',text:'Not specified'}]}]}));
+ await n['jobs-form'].emit('submit');assert.equal(n['jobs-results'].querySelectorAll('li').length,3);assert.equal(n.articles.children.length,1);assert.match(n['job-source-2'].textContent,/Could not extract/);assert.equal(n['scan-jobs'].disabled,false);
+ ui.respond(()=>Promise.reject(new Error('network')));await n['jobs-form'].emit('submit');assert.equal(n['job-url-1'].readOnly,false);assert.match(n['jobs-status'].textContent,/Try again/);assert.equal(n.articles.children.length,1);
+});
